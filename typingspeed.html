@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Typing Speed Test</title>
+<style>
+body{font-family:Arial,sans-serif;background:#121212;color:#fff;margin:0}
+.container{max-width:1000px;margin:20px auto;padding:20px}
+.card{background:#1e1e1e;padding:20px;border-radius:12px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+select,button{padding:10px;border-radius:8px;border:none}
+#textDisplay{background:#2b2b2b;padding:15px;border-radius:10px;line-height:1.8;font-size:20px;min-height:120px}
+.correct{color:#4caf50}
+.incorrect{color:#f44336;text-decoration:underline}
+.current{background:#444}
+textarea{width:100%;height:120px;margin-top:15px;border-radius:10px;padding:12px;font-size:18px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:15px}
+.stat{background:#2b2b2b;padding:10px;border-radius:10px;text-align:center}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{border:1px solid #444;padding:8px;text-align:center}
+#popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center}
+#popup .box{background:#1e1e1e;padding:20px;border-radius:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+<h1> Typing Speed Test</h1>
+
+<div class="controls">
+<select id="difficulty">
+<option value="easy">Easy</option>
+<option value="medium">Medium</option>
+<option value="hard">Hard</option>
+</select>
+
+<select id="duration">
+<option value="15">15 sec</option>
+<option value="30">30 sec</option>
+<option value="60" selected>60 sec</option>
+<option value="120">120 sec</option>
+</select>
+
+<button onclick="restartTest()">Restart</button>
+</div>
+
+<div id="textDisplay"></div>
+<textarea id="input" placeholder="Start typing..."></textarea>
+
+<div class="stats">
+<div class="stat"><h2 id="timer">60</h2><p>Time</p></div>
+<div class="stat"><h2 id="wpm">0</h2><p>WPM</p></div>
+<div class="stat"><h2 id="accuracy">100%</h2><p>Accuracy</p></div>
+<div class="stat"><h2 id="errors">0</h2><p>Errors</p></div>
+<div class="stat"><h2 id="best">0</h2><p>Best WPM</p></div>
+</div>
+
+<h2>Leaderboard / History</h2>
+<table>
+<thead><tr><th>Date</th><th>WPM</th><th>Accuracy</th><th>Errors</th></tr></thead>
+<tbody id="history"></tbody>
+</table>
+
+</div>
+</div>
+
+<div id="popup">
+<div class="box">
+<h2>Test Finished 🎉</h2>
+<p id="finalResult"></p>
+<button onclick="closePopup()">Close</button>
+</div>
+</div>
+
+<script>
+const texts = {
+
+easy: [
+"Practice coding every day to improve your programming skills quickly.",
+"Reading good books regularly helps develop knowledge and creativity effectively.",
+"Technology continues changing the world and creating exciting opportunities daily.",
+"Consistent effort and patience often lead to success in life.",
+"Learning new skills regularly increases confidence and career growth opportunities.",
+"Healthy habits and proper sleep improve focus and overall productivity.",
+"Small improvements every day can produce remarkable long term results.",
+"Communication skills help build stronger relationships in personal and professional life.",
+"A positive mindset helps overcome challenges and achieve important goals.",
+"Teamwork allows people to solve problems more efficiently and effectively."
+],
+
+medium: [
+"Technology has transformed communication and education, allowing people to access information instantly and collaborate efficiently from different parts of the world.",
+
+"Success requires dedication, discipline, and continuous learning because long term achievements are often built through consistent effort and perseverance.",
+
+"Reading books regularly improves vocabulary, critical thinking, and creativity while exposing readers to different perspectives and valuable experiences.",
+
+"Programming develops logical thinking and problem solving abilities, enabling developers to create software applications that impact millions of users.",
+
+"Maintaining good health requires balanced nutrition, regular exercise, proper sleep, and effective stress management for overall well being.",
+
+"Education provides knowledge and opportunities that help individuals build successful careers while developing valuable life skills and confidence.",
+
+"Effective teamwork requires communication, trust, and collaboration among members to achieve common goals and overcome challenges successfully."
+],
+
+hard: [
+"Artificial intelligence is rapidly transforming industries by enabling machines to perform complex tasks that traditionally required human intelligence, improving efficiency, accuracy, and decision making across healthcare, education, transportation, and finance sectors.",
+
+"Education plays a vital role in personal and professional development because it provides knowledge, practical skills, and critical thinking abilities that help individuals adapt successfully to changing technologies and global opportunities.",
+
+"Success is rarely achieved overnight and usually requires years of dedication, learning from failures, maintaining discipline, and continuously improving skills while staying focused on long term goals despite challenges and obstacles.",
+
+"The internet has revolutionized the way people communicate, learn, shop, and conduct business by providing instant access to information and connecting individuals across different countries and cultures.",
+
+"A healthy lifestyle involves regular physical activity, nutritious eating habits, adequate sleep, and effective stress management practices that contribute to better mental health, increased productivity, and improved quality of life.",
+
+"Modern software development requires developers to understand programming concepts, system design principles, testing methodologies, and deployment strategies to build scalable and reliable applications for diverse users.",
+
+"Scientific discoveries and technological innovations continue shaping the future by solving complex problems, improving living standards, and creating opportunities for sustainable growth and development worldwide."
+]
+
+};
+
+let currentText = "";
+let timer;
+let interval;
+let started = false;
+let totalErrors = 0;
+let previousLength = 0;
+
+const input = document.getElementById("input");
+const display = document.getElementById("textDisplay");
+
+function getText(){
+    const difficulty =
+        document.getElementById("difficulty").value;
+
+    const arr = texts[difficulty];
+
+    return arr[
+        Math.floor(Math.random() * arr.length)
+    ];
+}
+
+function renderText(){
+
+    currentText = getText();
+
+    display.innerHTML =
+        currentText
+        .split("")
+        .map(c => `<span>${c}</span>`)
+        .join("");
+}
+
+function restartTest(){
+
+    clearInterval(interval);
+
+    timer =
+        parseInt(
+            document.getElementById("duration").value
+        );
+
+    started = false;
+    totalErrors = 0;
+    previousLength = 0;
+
+    document.getElementById("timer").textContent =
+        timer;
+
+    document.getElementById("wpm").textContent = "0";
+    document.getElementById("accuracy").textContent =
+        "100%";
+
+    document.getElementById("errors").textContent =
+        "0";
+
+    input.disabled = false;
+    input.value = "";
+
+    renderText();
+}
+
+function startTimer(){
+
+    interval = setInterval(()=>{
+
+        timer--;
+
+        document.getElementById("timer")
+        .textContent = timer;
+
+        if(timer <= 0){
+
+            clearInterval(interval);
+
+            finishTest();
+        }
+
+    },1000);
+}
+
+input.addEventListener("input",()=>{
+
+    if(!started){
+        started = true;
+        startTimer();
+    }
+
+    const chars =
+        display.querySelectorAll("span");
+
+    const typed = input.value;
+
+    let correct = 0;
+
+    chars.forEach((span,index)=>{
+
+        const ch = typed[index];
+
+        span.className = "";
+
+        if(ch == null){
+
+            if(index === typed.length){
+                span.classList.add("current");
+            }
+
+        }else if(ch === span.textContent){
+
+            span.classList.add("correct");
+            correct++;
+
+        }else{
+
+            span.classList.add("incorrect");
+        }
+    });
+
+    if(typed.length > previousLength){
+
+        const last =
+            typed.length - 1;
+
+        if(
+            last >= 0 &&
+            typed[last] !== currentText[last]
+        ){
+            totalErrors++;
+        }
+    }
+
+    previousLength = typed.length;
+
+    document.getElementById("errors")
+    .textContent = totalErrors;
+
+    const totalTyped =
+        correct + totalErrors;
+
+    const accuracy =
+        totalTyped > 0
+        ? (correct / totalTyped) * 100
+        : 100;
+
+    document.getElementById("accuracy")
+    .textContent =
+        accuracy.toFixed(1) + "%";
+
+    let minutes =
+        (
+            parseInt(
+                document.getElementById("duration").value
+            ) - timer
+        ) / 60;
+
+    if(minutes <= 0){
+        minutes = 1/60;
+    }
+
+    const wpm =
+        Math.round(
+            ((correct / 5) / minutes) *
+            (accuracy / 100)
+        );
+
+    document.getElementById("wpm")
+    .textContent = wpm;
+});
+
+function finishTest(){
+
+    input.disabled = true;
+
+    const wpm =
+        document.getElementById("wpm")
+        .textContent;
+
+    const acc =
+        document.getElementById("accuracy")
+        .textContent;
+
+    const err =
+        document.getElementById("errors")
+        .textContent;
+
+    let best =
+        localStorage.getItem("bestWPM") || 0;
+
+    if(Number(wpm) > Number(best)){
+
+        best = wpm;
+
+        localStorage.setItem(
+            "bestWPM",
+            best
+        );
+    }
+
+    document.getElementById("best")
+    .textContent = best;
+
+    let history =
+        JSON.parse(
+            localStorage.getItem("typingHistory")
+            || "[]"
+        );
+
+    history.unshift({
+        date:new Date().toLocaleString(),
+        wpm,
+        acc,
+        err
+    });
+
+    history = history.slice(0,10);
+
+    localStorage.setItem(
+        "typingHistory",
+        JSON.stringify(history)
+    );
+
+    loadHistory();
+
+    document.getElementById("finalResult")
+    .innerHTML =
+        `WPM: ${wpm}<br>
+         Accuracy: ${acc}<br>
+         Errors: ${err}`;
+
+    document.getElementById("popup")
+    .style.display = "flex";
+}
+
+function loadHistory(){
+
+    document.getElementById("best")
+    .textContent =
+        localStorage.getItem("bestWPM")
+        || 0;
+
+    const history =
+        JSON.parse(
+            localStorage.getItem("typingHistory")
+            || "[]"
+        );
+
+    document.getElementById("history")
+    .innerHTML =
+        history.map(h =>
+        `<tr>
+            <td>${h.date}</td>
+            <td>${h.wpm}</td>
+            <td>${h.acc}</td>
+            <td>${h.err}</td>
+        </tr>`
+        ).join("");
+}
+
+function closePopup(){
+    document.getElementById("popup")
+    .style.display = "none";
+}
+
+document
+.getElementById("difficulty")
+.addEventListener(
+    "change",
+    restartTest
+);
+
+document
+.getElementById("duration")
+.addEventListener(
+    "change",
+    restartTest
+);
+
+loadHistory();
+restartTest();
+</script> 
+</body>
+</html>
